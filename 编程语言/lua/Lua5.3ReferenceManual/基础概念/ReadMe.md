@@ -121,3 +121,50 @@ Lua 实现了增量标记和扫描收集器。它使用两个数字来控制其�
 **只有具有显式构造的对象才会从弱表中删除**。值（如数字和轻 C 函数）不受垃圾回收的影响，因此不会从弱表中删除（除非收集其关联值）。尽管字符串受垃圾回收的影响，但它们没有显式构造，因此不会从弱表中删除。
 **复活的对象（即，正在完成的对象和只能通过正在完成的对象访问的对象）在弱表中具有特殊行为。**它们在运行终结器之前从弱值中删除，但只有在运行终结器后的下一个集合中，当这些对象实际被释放时，才会从弱键中删除。此行为允许终结器通过弱表访问与对象关联的属性。如果弱表在收集周期中复活的对象中，则在下一个循环之前可能无法正确清除该表。
 # 协程
+第一创建协程
+coroutine.create(func) 参数一个函数
+```lua
+function foo (a)
+    print("foo", a)
+    return coroutine.yield(2 * a)
+end
+
+co = coroutine.create(function(a, b)
+    print("co-boby",a,b)
+    local r = foo(a + 1)
+    print("co-boby",r)
+    local r,s = coroutine.yield(a+b,a-b)
+    print("co-body",r,s)
+    return b, "end"
+end)
+```
+yield 挂起跳出,包括嵌套函数中也能跳出
+```lua
+coroutine.yield(2 * a)
+```
+coroutine.resume(co, ...)
+如果函数是挂起跳出则将从挂起跳出的位置继续执行函数，塞入的额外参数将会通过yield赋值传入函数；如果函数未跳出过将从头执行。
+```lua
+print("main",coroutine.resume(co, 1, 10))
+print("main",coroutine.resume(co, "r"))
+
+result 
+co-boby 1       10
+foo     2
+main    true    4
+co-boby r
+main    true    11      -9
+```
+返回是否无异常， yield()内的参数，若出错将返回报错信息
+```lua
+print("main",coroutine.resume(co, "x", "y"))
+print("main",coroutine.resume(co, "x", "y"))
+
+result
+co-body x       y
+main    true    10      end
+main    false   cannot resume dead coroutine
+```
+
+
+
